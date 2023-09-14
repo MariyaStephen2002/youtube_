@@ -1,0 +1,17 @@
+# installing mongodb package to connecting mongodb
+pip install pymongo
+
+# installing package tfor connecting postgres local database
+pip install psycopg2
+
+# installing package to connecting streamlit 
+pip install streamlit
+
+# package for isodate
+pip install isodate
+
+# installing package to connecting streamlit_option_menu
+pip install streamlit_option_menu
+
+# installing  Google API client library for Python
+pip install --upgrade google-api-python-client
