@@ -6,7 +6,22 @@ from googleapiclient.discovery import build
 import isodate
 from streamlit_option_menu import option_menu
 
+# BUILDING CONNECTION WITH YOUTUBE API
+api_key = "AIzaSyAfZ20GixY3APY-VYL1o5vQlZGbjObJAU4" #"AIzaSyAfZ20GixY3APY-VYL1o5vQlZGbjObJAU4"
+youtube = build('youtube','v3',developerKey=api_key)
 
+# Bridging a connection with MongoDB Atlas and Creating a new database(youtube_Data)
+
+client = pymongo.MongoClient('mongodb+srv://i_am_stephen:astephen@cluster0.1pdmjhf.mongodb.net/?retryWrites=true&w=majority')
+db = client['youtube_Data']
+col=db["Channels"]
+
+# CONNECTING WITH POSTGRES DATABASE
+
+mb = psycopg2.connect(host="localhost",user="postgres",password="stephen",database= "postgres",port = "5432")
+cursor=mb.cursor()
+
+# SETTING PAGE CONFIGURATIONS
 
 st.set_page_config(page_title= "Youtube Data Harvesting and Warehousing | By Mariya Stephen",
                    layout= "wide",
@@ -14,6 +29,7 @@ st.set_page_config(page_title= "Youtube Data Harvesting and Warehousing | By Mar
                    menu_items={'About': """# This app is created by *Mariya Stephen!*"""})
 
 # CREATING OPTION MENU
+
 with st.sidebar:
     selected = option_menu(None, ["Home","Extract & Transform","View"], 
                        icons=["house-door-fill","tools","card-text"],
@@ -25,21 +41,6 @@ with st.sidebar:
                                "container" : {"max-width": "6000px"},
                                "nav-link-selected": {"background-color": "#C80101"}})
 
-
-
-
-
-api_key = "AIzaSyAfZ20GixY3APY-VYL1o5vQlZGbjObJAU4" #"AIzaSyAfZ20GixY3APY-VYL1o5vQlZGbjObJAU4"
-
-youtube = build('youtube','v3',developerKey=api_key)
-api_service_name="youtube"
-api_version="v3"
-youtube = build(api_service_name, api_version, developerKey=api_key)
-
-mb = psycopg2.connect(host="localhost",user="postgres",password="stephen",database= "youtube",port = "5432")
-cursor=mb.cursor()
-
-
 def format_duration(duration):
     duration_obj = isodate.parse_duration(duration)
     hours = duration_obj.total_seconds() // 3600
@@ -48,6 +49,7 @@ def format_duration(duration):
     formatted_duration = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
     return formatted_duration
 
+# FUNCTION TO GET CHANNEL DETAILS
 
 def get_channel_sts(youtube,channel_id):
   
@@ -68,7 +70,7 @@ def get_channel_sts(youtube,channel_id):
     }    
   return data
 
-
+# FUNCTION TO GET PLAYLISTS DETAILS
 
 def get_playlists(youtube,channel_id):
   request = youtube.playlists().list(
@@ -109,6 +111,7 @@ def get_playlists(youtube,channel_id):
           next_page_token = response.get('nextPageToken')
   return All_data
 
+# FUNCTION TO GET VIDEO IDS
 
 def get_video_ids(youtube, playlist_id):
   request = youtube.playlistItems().list(
@@ -143,6 +146,7 @@ def get_video_ids(youtube, playlist_id):
 
   return video_ids
 
+# FUNCTION TO GET VIDEO DETAILS
 
 def get_video_detail(youtube, video_id):
 
@@ -172,6 +176,7 @@ def get_video_detail(youtube, video_id):
                         video_info[v] = None
         return (video_info)
 
+# FUNCTION TO GET COMMENT DETAILS
 
 def get_comments_in_videos(youtube, video_id):
     all_comments = []
@@ -196,12 +201,10 @@ def get_comments_in_videos(youtube, video_id):
     
     return all_comments
 
-client = pymongo.MongoClient('mongodb+srv://i_am_stephen:astephen@cluster0.1pdmjhf.mongodb.net/?retryWrites=true&w=majority')
-db = client['youtube_Data']
-
-col=db["Channels"]
 
 @st.cache_data
+
+# FUNCTION TO INSERT API DATA INTO MONGODB
 
 def channel_Details(channel_id):
   det=get_channel_sts(youtube,channel_id)
@@ -224,10 +227,9 @@ def channel_Details(channel_id):
         col.insert_one(j)
   return ("process for a channel is completed")
 
-
+#FUNCTION TO CREATE AND INSERT CHANNELS TABLE IN POSTGRES DATABASE
 
 def channels_table():
-
     try:
         cursor.execute('''create table if not exists channels(channelName varchar(50),
                    channelId varchar(80), 
@@ -271,6 +273,7 @@ def channels_table():
     except:
         st.write("values already exists in the channel table")
         
+#FUNCTION TO CREATE AND INSERT PLAYLISTS TABLE IN POSTGRES DATABASE
 
 def playlists_table():
     try:
@@ -310,7 +313,7 @@ def playlists_table():
     except:
         st.write("values already exists in the playlist table")
     
-
+#FUNCTION TO CREATE AND INSERT VIDEOS TABLE IN POSTGRES DATABASE
 
 def videos_table():
     try:
@@ -332,8 +335,8 @@ def videos_table():
     except:
         mb.rollback()
 
-    col=db["videos"]
-    data4=col.find()
+    col4=db["videos"]
+    data4=col4.find()
     doc4=list(data4)
     df4=pd.DataFrame(doc4)
     try:
@@ -368,7 +371,7 @@ def videos_table():
     except:
         st.write("values aready exists in the videos table")
     
-
+#FUNCTION TO CREATE AND INSERT COMMENTS TABLE IN POSTGRES DATABASE
 
 def comments_table():
     try:
@@ -403,13 +406,17 @@ def comments_table():
                 mb.rollback()
     except:
         st.write("values already exists in the comments table")
-    
+
+# FUNCTION TO DISPLAY TABLES     
+
 def tables():
     channels_table()
     playlists_table()
     videos_table()
     comments_table()
     return ("Completed!!")
+
+# FUNCTION TO DISPLAY CHANNELS TABLES
 
 def display_channels():
     db=client['youtube_Data']
@@ -418,7 +425,7 @@ def display_channels():
     tableofchannels=st.dataframe(tableofchannels)
     return tableofchannels
     
-
+# FUNCTION TO DISPLAY VIDEOS TABLES
 
 def display_videos():
     db=client['youtube_Data']
@@ -427,7 +434,7 @@ def display_videos():
     tableofvideos=st.dataframe(tableofvideos)
     return tableofvideos
     
-
+# FUNCTION TO DISPLAY PLAYLISTS TABLES
 
 def display_playlists():
     db=client['youtube_Data']
@@ -436,24 +443,26 @@ def display_playlists():
     tableofplaylists=st.dataframe(tableofplaylists)
     return tableofplaylists
     
+# FUNCTION TO DISPLAY  COMMENTS TABLES
 
 def display_comments():
     db=client['youtube_Data']
-    col=db['comments']
+    col=db['playlists']
     tableofcomments=list(col.find())
     tableofcomments=st.dataframe(tableofcomments)
     return tableofcomments
-    
+
+# FUNCTIONS TO THE QUERIES   
 
 def one():
     try:
-        cursor.execute("select title as videos, channelTitle as chanel_name from videos;")
+        cursor.execute("select title as videos, channeltitle as chanel_name from videos;")
         mb.commit()
         t1=cursor.fetchall()
         st.write(pd.DataFrame(t1, columns=['Video Title','Channel Name']))
     except:
         mb.rollback()
-        cursor.execute("select title as videos, channelTitle as chanel_name from videos;")
+        cursor.execute("select title as videos, channeltitle as chanel_name from videos;")
         mb.commit()
         t1=cursor.fetchall()
         st.write(pd.DataFrame(t1, columns=['Video Title','Channel Name']))
@@ -474,14 +483,14 @@ def two():
 
 def three():
     try:
-        cursor.execute('''select viewCount as views , channelTitle as ChannelName,title as Name from videos 
+        cursor.execute('''select viewCount as views , channeltitle as ChannelName,title as Name from videos 
                         where viewCount is not null order by viewCount desc limit 10;''')
         mb.commit()
         t3=cursor.fetchall()
         st.write(pd.DataFrame(t3, columns=['Video Views','Channel Name', 'Video Title']))
     except:
         mb.rollback()
-        cursor.execute('''select viewCount as views , channelTitle as ChannelName,title as Name from videos 
+        cursor.execute('''select viewCount as views , channeltitle as ChannelName,title as Name from videos 
                         where viewcount is not null order by viewCount desc limit 10;''')
         mb.commit()
         t3=cursor.fetchall()
@@ -503,14 +512,14 @@ def four():
 
 def five():
     try:
-        cursor.execute('''select title as Video, channelTitle as ChannelName, likeCount as Likes from videos 
+        cursor.execute('''select title as Video, channeltitle as ChannelName, likeCount as Likes from videos 
                        where likecount is not null order by likecount desc;''')
         mb.commit()
         t5=cursor.fetchall()
         st.write(pd.DataFrame(t5, columns=['Video Title', 'Channel Name','Video Likes']))
     except:
         mb.rollback()
-        cursor.execute('''select title as Video, channelTitle as ChannelName, likeCount as Likes from videos 
+        cursor.execute('''select title as Video, channeltitle as ChannelName, likeCount as Likes from videos 
                        where likecount is not null order by likecount desc;''')
         mb.commit()
         t5=cursor.fetchall()
@@ -544,14 +553,14 @@ def seven():
 
 def eight():
     try:
-        cursor.execute('''select title as name, publishedat as VideoRelease, channelTitle as ChannelName from videos 
+        cursor.execute('''select title as name, publishedat as VideoRelease, channeltitle as ChannelName from videos 
                        where extract(year from publishedat) = 2022;''')
         mb.commit()
         t8=cursor.fetchall()
         st.write(pd.DataFrame(t8, columns=['Name', 'Video Publised On', 'ChannelName']))
     except:
         mb.rollback()
-        cursor.execute('''select title as name, publishedat as VideoRelease, channelTitle as ChannelName from videos 
+        cursor.execute('''select title as name, publishedat as VideoRelease, channeltitle as ChannelName from videos 
                        where extract(year from publishedat) = 2022;''')
         mb.commit()
         t8=cursor.fetchall()
@@ -559,26 +568,26 @@ def eight():
         
 def nine():
     try:
-        cursor.execute("SELECT channelTitle as ChannelName, AVG(duration) AS average_duration FROM videos GROUP BY channelName;")
+        cursor.execute("SELECT channeltitle as ChannelName, AVG(duration) AS average_duration FROM videos GROUP BY channelName;")
         mb.commit()
         t9 = cursor.fetchall()
-        t9 = pd.DataFrame(t9, columns=['channelTitle', 'Average Duration'])
+        t9 = pd.DataFrame(t9, columns=['ChannelTitle', 'Average Duration'])
         T9=[]
         for _, row in t9.iterrows():
-            channel_title = row['channelTitle']
+            channel_title = row['ChannelTitle']
             average_duration = row['Average Duration']
             average_duration_str = str(average_duration)
             T9.append({"Channel Title": channel_title ,  "Average Duration": average_duration_str})
         st.write(pd.DataFrame(T9))
     except:
         mb.rollback()
-        cursor.execute("SELECT channelTitle as ChannelName, AVG(duration) AS average_duration FROM videos GROUP BY channelName;")
+        cursor.execute("SELECT channeltitle as ChannelName, AVG(duration) AS average_duration FROM videos GROUP BY channelName;")
         mb.commit()
         t9 = cursor.fetchall()
-        t9 = pd.DataFrame(t9, columns=['channelTitle', 'Average Duration'])
+        t9 = pd.DataFrame(t9, columns=['ChannelTitle', 'Average Duration'])
         T9=[]
         for _, row in t9.iterrows():
-            channel_title = row['channelTitle']
+            channel_title = row['ChannelTitle']
             average_duration = row['Average Duration']
             average_duration_str = str(average_duration)
             T9.append({"Channel Title": channel_title ,  "Average Duration": average_duration_str})
@@ -587,20 +596,22 @@ def nine():
 
 def ten():
     try:
-        cursor.execute('''select title as Name, channelTitle as ChannelName, commentCount as Comments from videos 
+        cursor.execute('''select title as Name, channeltitle as ChannelName, commentCount as Comments from videos 
                        where commentcount is not null order by commentcount desc;''')
         mb.commit()
         t10=cursor.fetchall()
         st.write(pd.DataFrame(t10, columns=['Video Title', 'Channel Name', 'No Of Comments']))
     except:
         mb.rollback()
-        cursor.execute('''select title as Name, channelTitle as ChannelName, commentCount as Comments from videos 
+        cursor.execute('''select title as Name, channeltitle as ChannelName, commentCount as Comments from videos 
                    where commentcount is not null order by commentcount desc;''')
         mb.commit()
         t10=cursor.fetchall()
         st.write(pd.DataFrame(t10, columns=['Video Title', 'Channel Name', 'No Of Comments']))
+
+# HOME PAGE
+
 if selected == "Home":
-    # Title Image
     col1,col2 = st.columns(2,gap= 'medium')
     col1.markdown("## :blue[Domain] : Social Media")
     col1.markdown("## :blue[Technologies used] : Python,MongoDB, Youtube Data API, MySql, Streamlit")
@@ -610,6 +621,7 @@ if selected == "Home":
     col2.markdown("#   ")
 
 # EXTRACT AND TRANSFORM PAGE
+
 if selected == "Extract & Transform":
     st.subheader(':grey[YOUTUBE DATA HARVESTING AND WAREHOUSING]',divider='rainbow')
     channel_id = st.text_input("Enter the Channel id to collect data")
@@ -626,14 +638,16 @@ if selected == "Extract & Transform":
                 output = channel_Details(channel)
                 st.success(output)
 
+# MIGRATE
+
 if selected == "View":
     st.markdown(':rainbow[Click the below button to migrate the data to sql tables.]')        
     if st.button("Migrate 🕹️", type='primary'):
         display=tables()
         st.success(display)
     
+    #  DISPLAY 
     
-
     frames = st.selectbox(
         ":rainbow[SELECT THE TABLE YOU WISH TO VIEW]",
         ('None','Channel', 'Playlist', 'Video', 'Comment'))
@@ -649,6 +663,8 @@ if selected == "View":
     elif frames=='Comment':
         display_comments()
 
+#  QUERY
+    
     query = st.selectbox(
         ':rainbow[LET US DO SOME ANALYSIS]',
         ('None','1. What are the names of all the videos and their corresponding channels?', '2. Which channels have the most number of videos, and how many videos do they have?', '3. What are the top 10 most viewed videos and their respective channels?',
