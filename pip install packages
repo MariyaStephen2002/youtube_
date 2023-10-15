@@ -4,19 +4,6 @@
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 # installing mongodb package to connecting mongodb
 pip install pymongo
 
