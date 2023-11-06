@@ -25,3 +25,4 @@ Storage of data in a MongoDB database as a data lake.
 Migration of data from the data lake to a SQL database for efficient querying and analysis.
 
 Search and retrieval of data from the SQL database using different options.
+![image](https://github.com/MariyaStephen2002/youtube_/assets/132537481/78822fce-29fa-4a76-b6e0-16c45b92f2b8)
